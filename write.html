@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="/style.css" />
+
+    <title></title>
+  </head>
+  <body>
+    <form action="/add" method="POST">
+      <div class="todowrite">
+        <div class="title">
+          <label htmlFor="text">Title</label> <input type="text" name="title" />
+        </div>
+        <div class="date">
+          <label htmlFor="">Date</label> <input type="date" name="date" />
+        </div>
+
+        <div class="content">
+          <label htmlFor="text">Content</label>
+          <textarea name="content" id="" cols="30" rows="10"></textarea>
+        </div>
+        <button type="submit">Write</button>
+      </div>
+    </form>
+  </body>
+</html>
