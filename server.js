@@ -20,9 +20,10 @@ MongoClient.connect(
 
     db = client.db('todoapp'); //db정의
 
+    ////////// add하기
     app.post('/add', (req, res) => {
-      db.collection('counter').findOne({ name: 'post_num' }, (err, result) => {
-        const totalPost = result.totalPost;
+      db.collection('counter').findOne({ name: 'post_num' }, (err, data) => {
+        const totalPost = data.totalPost;
         db.collection('post').insertOne(
           {
             _id: totalPost + 1,
@@ -30,13 +31,13 @@ MongoClient.connect(
             date: req.body.date,
             content: req.body.content,
           },
-          (err, result) => {
+          (err, data) => {
             db.collection('counter').updateOne(
               { name: 'post_num' },
               { $inc: { totalPost: 1 } },
-              (err, result) => {}
+              (err, data) => {}
             );
-            console.log('upload to server completed');
+            console.log('upload to server complete');
           }
         );
 
@@ -44,17 +45,16 @@ MongoClient.connect(
       });
     });
 
-    // db.collection('post').insertOne(
-    //   {
-    //     title: 'hi',
-    //     date: '2222',
-    //     content: 'hiiiiii',
-    //   },
-    //   (err, res) => {
-    //     console.log('saved complete');
-    //   }
-    // ); //추가
+    ////delete
+    app.delete('/delete', (req, res) => {
+      req.body._id = parseInt(req.body._id);
+      db.collection('post').deleteOne(req.body, (err, data) => {
+        if (err) return console.log(err);
+        return res.status(200).send({ message: 'deleted complete' });
+      });
+    });
 
+    /////////////
     app.listen('8080', function () {
       console.log('listening on 8080');
     });
@@ -73,8 +73,8 @@ app.get('/write', (req, res) => {
 app.get('/list', (req, res) => {
   db.collection('post')
     .find()
-    .toArray((err, result) => {
-      res.render('list.ejs', { posts: result });
+    .toArray((err, data) => {
+      res.render('list.ejs', { posts: data });
     });
 });
 // app.post('/add', (req, res) => {
