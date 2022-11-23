@@ -116,3 +116,86 @@ app.get('/detail/:id', (req, res) => {
     res.render('detail.ejs', { post: data });
   });
 });
+
+////session 이용한 login 방식
+///미들웨어,? 웹서버는 요청-응답해주는 machine. 미들웨어는 요청과 응답중간에서 실행되는 코드!!
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const session = require('express-session');
+
+app.use(
+  session({ secret: 'secretCode', reverse: true, saveUninitialized: false })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+//login page
+app.get('/login', (req, res) => {
+  console.log('login page');
+  res.render('login.ejs');
+});
+
+//login 검사하는 함수. 순서 알기 id.pw를 주면 검사(미들웨어)를 하고, 통과하면 res로 응답호출
+app.post(
+  '/login',
+  passport.authenticate('local', {
+    failureRedirect: '/fail',
+  }),
+  (req, res) => {
+    res.redirect('/');
+  }
+);
+
+//위에서 미들웨어가 검사는하지만 실제로 뭔가해주는게 아님. 그래서 로컬스트레티지 인증을 이용함
+/// strategy 를 인증하는 방법이라고 부름
+
+passport.use(
+  new LocalStrategy(
+    {
+      usernameField: 'id',
+      passwordField: 'pw',
+      session: true,
+      passReqToCallback: false, ///사용자가 입력한 id외의 정보들. email이나 이름 등등을 가지고 정보를 검증할시
+      // ex 파라미터가 1개 더생김. 그래서 id.pw. parameter 로 인증~~
+    },
+    (id, pw, done) => {
+      db.collection('login').findOne({ id: id }, (err, data) => {
+        if (err) return done(err);
+        if (!data)
+          return done(null, false, { message: 'ID가 존재하지 않습니다.' });
+        if ((pw = data.pw)) {
+          return done(null, data);
+        } else {
+          return done(null, false, { alert: 'password wrong' });
+        }
+      });
+    }
+  )
+);
+
+//login 후에 my page
+
+app.get('/mypage', loggedIn, (req, res) => {
+  console.log(req.user);
+  res.render('mypage.ejs', { user: req.user });
+});
+
+function loggedIn(req, res, next) {
+  if (req.user) {
+    next();
+  } else {
+    res.send('You guys not logged in now');
+  }
+}
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+////user가 가진 여러 정보를 de가 분해해서 여러정보를 얻어옴
+passport.deserializeUser((id, done) => {
+  db.collection('login').findOne({ id: id }, (err, data) => {
+    done(null, data);
+  });
+});
