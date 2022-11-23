@@ -25,39 +25,15 @@
   </head>
   <body>
     <main>
-      <div class="tododb">
-        <h1>To do List</h1>
-        <% for (i=0; i < posts.length; i++){ %>
-        <div class="todolist">
-          <h4><%= posts[i].title %></h4>
-          <p><%= posts[i].content %></p>
-          <p><%= posts[i].date %></p>
-          <button class="delete" data-id="<%= posts[i]._id %>">Delete</button>
-          <button class="detail">
-            <a href="/detail/<%= posts[i]._id %>"> Detail</a>
-          </button>
-        </div>
-
-        <% } %>
+      <h1>Details</h1>
+      <div class="detail" key="<%= post._id %>">
+        <h4><%= post.title %></h4>
+        <p><%= post.content %></p>
+        <p><%= post.date %></p>
       </div>
     </main>
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-    <script>
-      $('.delete').click((e) => {
-        let post_id = e.target.dataset.id;
-        let target = $(this);
-        $.ajax({
-          method: 'DELETE',
-          url: '/delete',
-          data: { _id: post_id },
-        })
-          .done((res) => {
-            window.location.reload();
-          })
-          .fail(() => {});
-      });
-    </script>
 
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script

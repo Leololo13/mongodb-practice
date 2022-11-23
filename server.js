@@ -50,7 +50,7 @@ MongoClient.connect(
       req.body._id = parseInt(req.body._id);
       db.collection('post').deleteOne(req.body, (err, data) => {
         if (err) return console.log(err);
-        return res.status(200).send({ message: 'deleted complete' });
+        return res.json({ success: 'deleted complete', status: 200 });
       });
     });
 
@@ -77,7 +77,13 @@ app.get('/list', (req, res) => {
       res.render('list.ejs', { posts: data });
     });
 });
-// app.post('/add', (req, res) => {
-//   res.send('전송완료');
-//   console.log(req.body);
-// });
+
+//detail page  params 이용해서 id get
+app.get('/detail/:id', (req, res) => {
+  let id = parseInt(req.params.id);
+  console.log(id);
+  db.collection('post').findOne({ _id: id }, (err, data) => {
+    console.log(data);
+    res.render('detail.ejs', { post: data });
+  });
+});
