@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="/style.css" />
+
+    <title></title>
+  </head>
+  <body>
+    <form action="/edit?_method=PUT" method="POST">
+      <div class="todowrite">
+        <input
+          type="text"
+          name="id"
+          value="<%=post._id%>"
+          style="display: none"
+        />
+        <div class="title">
+          <label htmlFor="text">Title</label>
+          <input type="text" name="title" value="<%=post.title%>" />
+        </div>
+        <div class="date">
+          <label htmlFor="">Date</label>
+          <input type="date" name="date" value="<%=post.date%>" />
+        </div>
+
+        <div class="content">
+          <label htmlFor="text">Content</label>
+          <textarea name="content" cols="30" rows="10">
+ <%=post.content%></textarea
+          >
+        </div>
+        <button type="submit">Edit</button>
+      </div>
+    </form>
+  </body>
+</html>

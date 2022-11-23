@@ -11,6 +11,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const MongoClient = require('mongodb').MongoClient;
 //ejs 사용하기
 app.set('view engine', 'ejs');
+//method-override 사용하기
+
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
+
 let db;
 MongoClient.connect(
   'mongodb+srv://leo_admin:rmsgur13@main.9cfoapa.mongodb.net/?retryWrites=true&w=majority',
@@ -78,12 +83,36 @@ app.get('/list', (req, res) => {
     });
 });
 
+//edit page 로 move
+app.get('/edit/:id', (req, res) => {
+  let id = parseInt(req.params.id);
+
+  db.collection('post').findOne({ _id: id }, (err, data) => {
+    res.render('edit.ejs', { post: data });
+  });
+});
+//edit 클릭시 실제 db를 서버에요청해서 바꿈
+app.put('/edit', (req, res) => {
+  db.collection('post').updateOne(
+    { _id: parseInt(req.body.id) },
+    {
+      $set: {
+        title: req.body.title,
+        date: req.body.date,
+        content: req.body.content,
+      },
+    },
+    (err, data) => {
+      res.redirect('/list');
+    }
+  );
+});
+
 //detail page  params 이용해서 id get
 app.get('/detail/:id', (req, res) => {
   let id = parseInt(req.params.id);
   console.log(id);
   db.collection('post').findOne({ _id: id }, (err, data) => {
-    console.log(data);
     res.render('detail.ejs', { post: data });
   });
 });

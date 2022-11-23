@@ -36,6 +36,9 @@
           <button class="detail">
             <a href="/detail/<%= posts[i]._id %>"> Detail</a>
           </button>
+          <button class="edit" data-id="<%= posts[i]._id %>">
+            <a href="/edit/<%= posts[i]._id %>"> Edit</a>
+          </button>
         </div>
 
         <% } %>
