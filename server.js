@@ -18,7 +18,7 @@ app.use(methodOverride('_method'));
 
 let db;
 MongoClient.connect(
-  'mongodb+srv://leo_admin:rmsgur13@main.9cfoapa.mongodb.net/?retryWrites=true&w=majority',
+  'mongodb+srv://leo_admin:12345@main.9cfoapa.mongodb.net/?retryWrites=true&w=majority',
   function (err, client) {
     if (err) return console.log(err);
     //서버띄우는 코드 여기로 옮기기
