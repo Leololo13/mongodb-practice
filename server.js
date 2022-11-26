@@ -50,15 +50,6 @@ MongoClient.connect(
       });
     });
 
-    ////delete
-    app.delete('/delete', (req, res) => {
-      req.body._id = parseInt(req.body._id);
-      db.collection('post').deleteOne(req.body, (err, data) => {
-        if (err) return console.log(err);
-        return res.json({ success: 'deleted complete', status: 200 });
-      });
-    });
-
     /////////////
     app.listen('8080', function () {
       console.log('listening on 8080');
@@ -117,6 +108,32 @@ app.get('/detail/:id', (req, res) => {
   });
 });
 
+//search page
+app.get('/search', (req, res) => {
+  new Date();
+  let searchInput = req.query.value;
+  let searchCondition = [
+    {
+      $search: {
+        index: 'titleSearchs',
+        text: {
+          query: searchInput,
+          path: ['title', 'content'],
+        },
+      },
+    },
+    { $sort: { _id: 1 } },
+    { $limit: 10 },
+    { $project: { title: 1 } },
+  ];
+  db.collection('post')
+    .aggregate(searchCondition)
+    .toArray((err, data) => {
+      res.render('search.ejs', { posts: data });
+    });
+});
+
+/////////login~~~
 ////session 이용한 login 방식
 ///미들웨어,? 웹서버는 요청-응답해주는 machine. 미들웨어는 요청과 응답중간에서 실행되는 코드!!
 const passport = require('passport');
@@ -197,5 +214,86 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser((id, done) => {
   db.collection('login').findOne({ id: id }, (err, data) => {
     done(null, data);
+  });
+});
+
+//////sign up page
+app.get('/signup', (req, res) => {
+  console.log('login page');
+  res.render('signup.ejs');
+});
+/////////Register function
+
+app.post('/register', (req, res) => {
+  function checkEngNum(str) {
+    const regExp = /[a-zA-Z0-9]/g;
+    if (regExp.test(str)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  let userData = {
+    id: req.body.id,
+    pw: req.body.pw,
+    name: req.body.name,
+    email: req.body.email,
+    registerDate: new Date(),
+  };
+
+  db.collection('login').findOne({ id: req.body.id }, (err, data) => {
+    if (!data) {
+      checkEngNum(userData.id)
+        ? db.collection('login').insertOne(userData, (err, data) => {
+            res.redirect('/list');
+          })
+        : console.log(
+            'ID입력이 잘못되었습니다, 영어,숫자의 조합으로 입력해주십시오'
+          );
+    } else {
+      console.log('중복된 아이디가 있습니다');
+    }
+  });
+});
+
+app.post('/add', loggedIn, (req, res) => {
+  db.collection('counter').findOne({ name: 'post_num' }, (err, data) => {
+    const totalPost = data.totalPost;
+    let writeInfo = {
+      title: req.body.title,
+      date: req.body.date,
+      content: req.body.content,
+      user: req.user._id,
+      _id: totalPost + 1,
+      writtenDate: new Date(),
+    };
+    if (!writeInfo.title) {
+      console.log('타이틀을 입력해주십시오');
+    }
+    if (!writeInfo.content) {
+      console.log('내용을 입력해주십시오');
+    } else {
+      db.collection('post').insertOne(writeInfo, (err, data) => {
+        db.collection('counter').updateOne(
+          { name: 'post_num' },
+          { $inc: { totalPost: 1 } },
+          (err, data) => {}
+        );
+        console.log('upload to server complete');
+      });
+      res.send('전송완료');
+    }
+  });
+});
+
+////delete
+app.delete('/delete', loggedIn, function (req, res) {
+  req.body._id = parseInt(req.body._id);
+  let userInfo = { _id: req.body._id, user: req.user._id };
+
+  db.collection('post').deleteOne(userInfo, (err, data) => {
+    if (err) return err;
+    res.send('삭제되었습니다');
   });
 });
