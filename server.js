@@ -16,46 +16,21 @@ app.set('view engine', 'ejs');
 const methodOverride = require('method-override');
 app.use(methodOverride('_method'));
 
+//env사용하기  ======dotenv 설치 후 이용
+require('dotenv').config();
+
 let db;
-MongoClient.connect(
-  'mongodb+srv://leo_admin:12345@main.9cfoapa.mongodb.net/?retryWrites=true&w=majority',
-  function (err, client) {
-    if (err) return console.log(err);
-    //서버띄우는 코드 여기로 옮기기
+MongoClient.connect(process.env.DB_URL, function (err, client) {
+  if (err) return console.log(err);
+  //서버띄우는 코드 여기로 옮기기
 
-    db = client.db('todoapp'); //db정의
+  db = client.db('todoapp'); //db정의
 
-    ////////// add하기
-    app.post('/add', (req, res) => {
-      db.collection('counter').findOne({ name: 'post_num' }, (err, data) => {
-        const totalPost = data.totalPost;
-        db.collection('post').insertOne(
-          {
-            _id: totalPost + 1,
-            title: req.body.title,
-            date: req.body.date,
-            content: req.body.content,
-          },
-          (err, data) => {
-            db.collection('counter').updateOne(
-              { name: 'post_num' },
-              { $inc: { totalPost: 1 } },
-              (err, data) => {}
-            );
-            console.log('upload to server complete');
-          }
-        );
-
-        res.send('전송완료');
-      });
-    });
-
-    /////////////
-    app.listen('8080', function () {
-      console.log('listening on 8080');
-    });
-  }
-);
+  /////////////
+  app.listen(process.env.PORT, function () {
+    console.log('listening on 8080');
+  });
+});
 
 app.use(express.static('public'));
 
@@ -64,14 +39,6 @@ app.get('/', (req, res) => {
 });
 app.get('/write', (req, res) => {
   res.sendfile(__dirname + '/write.html');
-});
-
-app.get('/list', (req, res) => {
-  db.collection('post')
-    .find()
-    .toArray((err, data) => {
-      res.render('list.ejs', { posts: data });
-    });
 });
 
 //edit page 로 move
@@ -102,7 +69,7 @@ app.put('/edit', (req, res) => {
 //detail page  params 이용해서 id get
 app.get('/detail/:id', (req, res) => {
   let id = parseInt(req.params.id);
-  console.log(id);
+
   db.collection('post').findOne({ _id: id }, (err, data) => {
     res.render('detail.ejs', { post: data });
   });
@@ -141,12 +108,10 @@ const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
 
 app.use(
-  session({ secret: 'secretCode', reverse: true, saveUninitialized: false })
+  session({ secret: '비밀코드', resave: true, saveUninitialized: false })
 );
-
 app.use(passport.initialize());
 app.use(passport.session());
-
 //login page
 app.get('/login', (req, res) => {
   console.log('login page');
@@ -194,7 +159,6 @@ passport.use(
 //login 후에 my page
 
 app.get('/mypage', loggedIn, (req, res) => {
-  console.log(req.user);
   res.render('mypage.ejs', { user: req.user });
 });
 
@@ -241,7 +205,7 @@ app.post('/register', (req, res) => {
     email: req.body.email,
     registerDate: new Date(),
   };
-
+  ///////////////login
   db.collection('login').findOne({ id: req.body.id }, (err, data) => {
     if (!data) {
       checkEngNum(userData.id)
@@ -257,6 +221,7 @@ app.post('/register', (req, res) => {
   });
 });
 
+///////////////addddddddd
 app.post('/add', loggedIn, (req, res) => {
   db.collection('counter').findOne({ name: 'post_num' }, (err, data) => {
     const totalPost = data.totalPost;
@@ -264,7 +229,7 @@ app.post('/add', loggedIn, (req, res) => {
       title: req.body.title,
       date: req.body.date,
       content: req.body.content,
-      user: req.user._id,
+      id: req.user.id,
       _id: totalPost + 1,
       writtenDate: new Date(),
     };
@@ -290,10 +255,24 @@ app.post('/add', loggedIn, (req, res) => {
 ////delete
 app.delete('/delete', loggedIn, function (req, res) {
   req.body._id = parseInt(req.body._id);
-  let userInfo = { _id: req.body._id, user: req.user._id };
+  let userInfo = { _id: req.body._id, id: req.user.id };
 
   db.collection('post').deleteOne(userInfo, (err, data) => {
     if (err) return err;
     res.send('삭제되었습니다');
   });
+});
+
+/////로그인 후 list 에서는 userid를 받아서 edit, delte버튼 보여주기
+
+app.get('/list', (req, res) => {
+  db.collection('post')
+    .find()
+    .toArray((err, data) => {
+      if (req.user) {
+        res.render('list.ejs', { posts: data, user: req.user });
+      } else {
+        res.render('list.ejs', { posts: data, user: 'none' });
+      }
+    });
 });
