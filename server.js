@@ -34,72 +34,6 @@ MongoClient.connect(process.env.DB_URL, function (err, client) {
 
 app.use(express.static('public'));
 
-app.get('/', (req, res) => {
-  res.sendfile(__dirname + '/index.html');
-});
-app.get('/write', (req, res) => {
-  res.sendfile(__dirname + '/write.html');
-});
-
-//edit page 로 move
-app.get('/edit/:id', (req, res) => {
-  let id = parseInt(req.params.id);
-
-  db.collection('post').findOne({ _id: id }, (err, data) => {
-    res.render('edit.ejs', { post: data });
-  });
-});
-//edit 클릭시 실제 db를 서버에요청해서 바꿈
-app.put('/edit', (req, res) => {
-  db.collection('post').updateOne(
-    { _id: parseInt(req.body.id) },
-    {
-      $set: {
-        title: req.body.title,
-        date: req.body.date,
-        content: req.body.content,
-      },
-    },
-    (err, data) => {
-      res.redirect('/list');
-    }
-  );
-});
-
-//detail page  params 이용해서 id get
-app.get('/detail/:id', (req, res) => {
-  let id = parseInt(req.params.id);
-
-  db.collection('post').findOne({ _id: id }, (err, data) => {
-    res.render('detail.ejs', { post: data });
-  });
-});
-
-//search page
-app.get('/search', (req, res) => {
-  new Date();
-  let searchInput = req.query.value;
-  let searchCondition = [
-    {
-      $search: {
-        index: 'titleSearchs',
-        text: {
-          query: searchInput,
-          path: ['title', 'content'],
-        },
-      },
-    },
-    { $sort: { _id: 1 } },
-    { $limit: 10 },
-    { $project: { title: 1 } },
-  ];
-  db.collection('post')
-    .aggregate(searchCondition)
-    .toArray((err, data) => {
-      res.render('search.ejs', { posts: data });
-    });
-});
-
 /////////login~~~
 ////session 이용한 login 방식
 ///미들웨어,? 웹서버는 요청-응답해주는 machine. 미들웨어는 요청과 응답중간에서 실행되는 코드!!
@@ -107,6 +41,7 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
 
+//아마 이부분을 바꾸면 될거같음?
 app.use(
   session({ secret: '비밀코드', resave: true, saveUninitialized: false })
 );
@@ -146,7 +81,7 @@ passport.use(
         if (err) return done(err);
         if (!data)
           return done(null, false, { message: 'ID가 존재하지 않습니다.' });
-        if ((pw = data.pw)) {
+        if (pw == data.pw) {
           return done(null, data);
         } else {
           return done(null, false, { alert: 'password wrong' });
@@ -156,20 +91,7 @@ passport.use(
   )
 );
 
-//login 후에 my page
-
-app.get('/mypage', loggedIn, (req, res) => {
-  res.render('mypage.ejs', { user: req.user });
-});
-
-function loggedIn(req, res, next) {
-  if (req.user) {
-    next();
-  } else {
-    res.send('You guys not logged in now');
-  }
-}
-
+////////////session data를 만드는것
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
@@ -179,6 +101,81 @@ passport.deserializeUser((id, done) => {
   db.collection('login').findOne({ id: id }, (err, data) => {
     done(null, data);
   });
+});
+
+app.get('/', (req, res) => {
+  if (req.user) {
+    res.render('index.ejs', { user: req.user });
+  } else {
+    res.render('index.ejs', { user: '1' });
+  }
+});
+app.get('/write', (req, res) => {
+  res.render('write.ejs');
+});
+
+//edit page 로 move
+app.get('/edit/:id', (req, res) => {
+  let id = parseInt(req.params.id);
+
+  db.collection('post').findOne({ _id: id }, (err, data) => {
+    res.render('edit.ejs', { post: data });
+  });
+});
+//edit 클릭시 실제 db를 서버에요청해서 바꿈
+app.put('/edit', (req, res) => {
+  db.collection('post').updateOne(
+    { _id: parseInt(req.body.id) },
+    {
+      $set: {
+        title: req.body.title,
+        date: req.body.date,
+        content: req.body.content,
+      },
+    },
+    (err, data) => {
+      res.redirect('/list');
+    }
+  );
+});
+
+//detail page  params 이용해서 id get
+app.get('/detail/:id', (req, res) => {
+  let id = parseInt(req.params.id);
+  if (req.user) {
+    db.collection('post').findOne({ _id: id }, (err, data) => {
+      res.render('detail.ejs', { post: data, user: req.user });
+    });
+  } else {
+    db.collection('post').findOne({ _id: id }, (err, data) => {
+      res.render('detail.ejs', { post: data, user: '' });
+    });
+  }
+});
+
+//search page
+app.get('/search', (req, res) => {
+  new Date();
+  let searchInput = req.query.value;
+  let searchCondition = [
+    {
+      $search: {
+        index: 'titleSearchs',
+        text: {
+          query: searchInput,
+          path: ['title', 'content'],
+        },
+      },
+    },
+    { $sort: { _id: 1 } },
+    { $limit: 10 },
+    { $project: { title: 1 } },
+  ];
+  db.collection('post')
+    .aggregate(searchCondition)
+    .toArray((err, data) => {
+      res.render('search.ejs', { posts: data });
+    });
 });
 
 //////sign up page
@@ -221,6 +218,20 @@ app.post('/register', (req, res) => {
   });
 });
 
+//login 후에 my page
+
+app.get('/mypage', loggedIn, (req, res) => {
+  res.render('mypage.ejs', { user: req.user });
+});
+
+function loggedIn(req, res, next) {
+  if (req.user) {
+    next();
+  } else {
+    res.send('You guys not logged in now');
+  }
+}
+
 ///////////////addddddddd
 app.post('/add', loggedIn, (req, res) => {
   db.collection('counter').findOne({ name: 'post_num' }, (err, data) => {
@@ -247,7 +258,7 @@ app.post('/add', loggedIn, (req, res) => {
         );
         console.log('upload to server complete');
       });
-      res.send('전송완료');
+      res.redirect('/list');
     }
   });
 });
@@ -275,4 +286,13 @@ app.get('/list', (req, res) => {
         res.render('list.ejs', { posts: data, user: 'none' });
       }
     });
+});
+
+app.use('/shop', require('./routes/shop'));
+
+app.get('/shop/shirts', (req, res) => {
+  res.send('셔츠');
+});
+app.get('/shop/pants', (req, res) => {
+  res.send('바지');
 });
